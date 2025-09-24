@@ -11,7 +11,7 @@ from helper.progress import progress_for_pyrogram
 DOWNLOADS = "downloads"
 os.makedirs(DOWNLOADS, exist_ok=True)
 
-# Temporary in-memory storage to track pending renames
+# In-memory storage for pending renames
 PENDING_RENAME = {}  # user_id -> file_message_id
 
 # -------------------- Handle incoming files -------------------- #
@@ -20,7 +20,6 @@ async def handle_file(client, message):
     file = message.document or message.audio or message.video
     filename = file.file_name
 
-    # Ask user what to do
     await message.reply_text(
         f"File received: {filename}\nWhat do you want to do?",
         reply_markup=InlineKeyboardMarkup([
@@ -56,8 +55,9 @@ async def rename_file(client, message):
 
     file_msg_id = PENDING_RENAME.pop(user_id)
     orig_msg = await client.get_messages(message.chat.id, file_msg_id)
-    file = orig_msg.document or orig_msg.audio or orig_msg.video
 
+    # Get the media
+    file = orig_msg.document or orig_msg.audio or orig_msg.video
     if not file:
         return await message.reply_text("❌ Original file not found.")
 
@@ -74,7 +74,7 @@ async def rename_file(client, message):
         progress_args=("Downloading...", status, start_time)
     )
 
-    # Check for thumbnail
+    # Thumbnail (if any)
     thumb = find(user_id)
     ph_path = None
     if thumb:
@@ -83,35 +83,37 @@ async def rename_file(client, message):
         img = img.resize((320, 320))
         img.save(ph_path, "JPEG")
 
-    # Upload file
+    # Upload file based on type
     await status.edit("Uploading...")
     try:
-        if file.video:
-            # Get duration
+        if orig_msg.video:
             duration = 0
             metadata = extractMetadata(createParser(file_path))
             if metadata.has("duration"):
                 duration = metadata.get("duration").seconds
-
             await client.send_video(
-                message.chat.id, video=file_path, thumb=ph_path if ph_path else None,
+                message.chat.id, video=file_path, thumb=ph_path,
                 duration=duration, caption=out_filename,
                 progress=progress_for_pyrogram, progress_args=("Uploading...", status, start_time)
             )
-        elif file.audio:
+
+        elif orig_msg.audio:
             await client.send_audio(
-                message.chat.id, audio=file_path, thumb=ph_path if ph_path else None,
+                message.chat.id, audio=file_path, thumb=ph_path,
                 caption=out_filename, progress=progress_for_pyrogram,
                 progress_args=("Uploading...", status, start_time)
             )
         else:
             await client.send_document(
-                message.chat.id, document=file_path, thumb=ph_path if ph_path else None,
+                message.chat.id, document=file_path, thumb=ph_path,
                 caption=out_filename, progress=progress_for_pyrogram,
                 progress_args=("Uploading...", status, start_time)
             )
+
         await status.delete()
     finally:
-        os.remove(file_path)
+        # Cleanup
+        if os.path.exists(file_path):
+            os.remove(file_path)
         if ph_path and os.path.exists(ph_path):
             os.remove(ph_path)
