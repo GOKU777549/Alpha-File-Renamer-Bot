@@ -14,7 +14,7 @@ class Config:
     DB_NAME = os.getenv("DB_NAME", "FileRenamerBot")
 
     # Admins (for broadcast/restart)
-    ADMIN_ID = [int(x) for x in os.getenv("ADMINS", "7576729648").split()]
+    ADMIN_ID = [int(x) for x in os.getenv("ADMIN_ID", "7576729648").split()]
 
     # Others
     DOWNLOAD_DIR = "./downloads"
