@@ -2,7 +2,7 @@ import os
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputFile
 from telegram.ext import ContextTypes, ConversationHandler, MessageHandler, CallbackQueryHandler, CommandHandler, filters
 from Alpha import db
-from progress import progress_for_ptb  # import progress function
+from progress import progress_for_ptb  # import Alpha.utils.progress function
 
 ASK_FILENAME, ASK_TYPE = range(2)
 
