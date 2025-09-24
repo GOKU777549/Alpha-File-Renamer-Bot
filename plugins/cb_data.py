@@ -1,225 +1,117 @@
 import os
 import time
-from PIL import Image
 from pyrogram import Client, filters
-from pyrogram.types import ForceReply
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, ForceReply
+from PIL import Image
 from hachoir.metadata import extractMetadata
 from hachoir.parser import createParser
 from helper.database import find
 from helper.progress import progress_for_pyrogram
 
 DOWNLOADS = "downloads"
+os.makedirs(DOWNLOADS, exist_ok=True)
 
-if not os.path.exists(DOWNLOADS):
-    os.makedirs(DOWNLOADS)
+# Temporary in-memory storage to track pending renames
+PENDING_RENAME = {}  # user_id -> file_message_id
 
-# ---------------- Rename callback ---------------- #
-@Client.on_callback_query(filters.regex('rename'))
-async def rename(bot, update):
-    """Ask user to input new filename"""
-    await update.message.delete()
-    await update.message.reply_text(
-        "__Please enter the new filename in format 'Name:-newfilename'__",
+# -------------------- Handle incoming files -------------------- #
+@Client.on_message(filters.private & (filters.document | filters.audio | filters.video))
+async def handle_file(client, message):
+    file = message.document or message.audio or message.video
+    filename = file.file_name
+
+    # Ask user what to do
+    await message.reply_text(
+        f"File received: {filename}\nWhat do you want to do?",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("📝 Rename", callback_data="rename")],
+            [InlineKeyboardButton("✖️ Cancel", callback_data="cancel")]
+        ])
+    )
+    # Store original file message ID
+    PENDING_RENAME[message.from_user.id] = message.id
+
+# -------------------- Ask for new filename -------------------- #
+@Client.on_callback_query(filters.regex("rename"))
+async def ask_rename(client, query):
+    user_id = query.from_user.id
+    if user_id not in PENDING_RENAME:
+        return await query.answer("❌ No file found to rename.", show_alert=True)
+
+    await query.message.delete()
+    await query.message.reply_text(
+        "Please send the new filename (ForceReply)",
         reply_markup=ForceReply(True)
     )
 
-# ---------------- Document Handler ---------------- #
-@Client.on_callback_query(filters.regex("doc"))
-async def doc(bot, update):
-    msg = update.message
-    # Get the original file message (the one replied to in ForceReply)
-    if not msg.reply_to_message or not msg.reply_to_message.reply_to_message:
-        return await msg.edit("❌ Failed to get the original file message.")
-    
-    file_msg = msg.reply_to_message.reply_to_message
-    new_name_text = msg.reply_to_message.text
-    
-    # Parse new filename
-    try:
-        new_filename = new_name_text.split(":-")[1]
-    except IndexError:
-        return await msg.edit("❌ Invalid format. Use 'Name:-newfilename'")
-    
-    # Prepare paths
-    file_path = os.path.join(DOWNLOADS, new_filename)
-    
-    # Download original file
-    ms = await msg.edit("```Trying to download...```")
+# -------------------- Handle new filename -------------------- #
+@Client.on_message(filters.private & filters.reply)
+async def rename_file(client, message):
+    user_id = message.from_user.id
+    if user_id not in PENDING_RENAME:
+        return  # nothing pending
+
+    new_name = message.text
+    await message.delete()
+
+    file_msg_id = PENDING_RENAME.pop(user_id)
+    orig_msg = await client.get_messages(message.chat.id, file_msg_id)
+    file = orig_msg.document or orig_msg.audio or orig_msg.video
+
+    if not file:
+        return await message.reply_text("❌ Original file not found.")
+
+    filename = file.file_name
+    ext = os.path.splitext(filename)[1]
+    out_filename = new_name if "." in new_name else new_name + ext
+    file_path = os.path.join(DOWNLOADS, out_filename)
+
+    # Download file
+    status = await message.reply_text("Downloading...")
     start_time = time.time()
-    try:
-        downloaded_path = await bot.download_media(
-            file_msg, progress=progress_for_pyrogram,
-            progress_args=("```Downloading...```", ms, start_time)
-        )
-    except Exception as e:
-        return await ms.edit(f"❌ Download failed:\n{str(e)}")
-    
-    os.rename(downloaded_path, file_path)
-    
+    downloaded_path = await client.download_media(
+        file, file_path, progress=progress_for_pyrogram,
+        progress_args=("Downloading...", status, start_time)
+    )
+
     # Check for thumbnail
-    user_id = msg.chat.id
     thumb = find(user_id)
     ph_path = None
     if thumb:
-        ph_path = await bot.download_media(thumb)
+        ph_path = await client.download_media(thumb)
         img = Image.open(ph_path).convert("RGB")
         img = img.resize((320, 320))
         img.save(ph_path, "JPEG")
-    
+
     # Upload file
-    await ms.edit("```Uploading...```")
+    await status.edit("Uploading...")
     try:
-        if ph_path:
-            await bot.send_document(
-                msg.chat.id, document=file_path, thumb=ph_path,
-                caption=f"**{new_filename}**",
-                progress=progress_for_pyrogram,
-                progress_args=("```Uploading...```", ms, start_time)
+        if file.video:
+            # Get duration
+            duration = 0
+            metadata = extractMetadata(createParser(file_path))
+            if metadata.has("duration"):
+                duration = metadata.get("duration").seconds
+
+            await client.send_video(
+                message.chat.id, video=file_path, thumb=ph_path if ph_path else None,
+                duration=duration, caption=out_filename,
+                progress=progress_for_pyrogram, progress_args=("Uploading...", status, start_time)
             )
-            os.remove(ph_path)
+        elif file.audio:
+            await client.send_audio(
+                message.chat.id, audio=file_path, thumb=ph_path if ph_path else None,
+                caption=out_filename, progress=progress_for_pyrogram,
+                progress_args=("Uploading...", status, start_time)
+            )
         else:
-            await bot.send_document(
-                msg.chat.id, document=file_path,
-                caption=f"**{new_filename}**",
-                progress=progress_for_pyrogram,
-                progress_args=("```Uploading...```", ms, start_time)
+            await client.send_document(
+                message.chat.id, document=file_path, thumb=ph_path if ph_path else None,
+                caption=out_filename, progress=progress_for_pyrogram,
+                progress_args=("Uploading...", status, start_time)
             )
-        await ms.delete()
+        await status.delete()
+    finally:
         os.remove(file_path)
-    except Exception as e:
-        await ms.edit(f"❌ Upload failed:\n{str(e)}")
-        os.remove(file_path)
-
-# ---------------- Video Handler ---------------- #
-@Client.on_callback_query(filters.regex("vid"))
-async def vid(bot, update):
-    msg = update.message
-    if not msg.reply_to_message or not msg.reply_to_message.reply_to_message:
-        return await msg.edit("❌ Failed to get the original file message.")
-
-    file_msg = msg.reply_to_message.reply_to_message
-    new_name_text = msg.reply_to_message.text
-    try:
-        new_filename = new_name_text.split(":-")[1]
-    except IndexError:
-        return await msg.edit("❌ Invalid format. Use 'Name:-newfilename'")
-
-    file_path = os.path.join(DOWNLOADS, new_filename)
-    ms = await msg.edit("```Trying to download...```")
-    start_time = time.time()
-    
-    try:
-        downloaded_path = await bot.download_media(
-            file_msg, progress=progress_for_pyrogram,
-            progress_args=("```Downloading...```", ms, start_time)
-        )
-    except Exception as e:
-        return await ms.edit(f"❌ Download failed:\n{str(e)}")
-
-    os.rename(downloaded_path, file_path)
-    
-    # Get duration
-    duration = 0
-    metadata = extractMetadata(createParser(file_path))
-    if metadata.has("duration"):
-        duration = metadata.get("duration").seconds
-    
-    # Check thumbnail
-    user_id = msg.chat.id
-    thumb = find(user_id)
-    ph_path = None
-    if thumb:
-        ph_path = await bot.download_media(thumb)
-        img = Image.open(ph_path).convert("RGB")
-        img = img.resize((320, 320))
-        img.save(ph_path, "JPEG")
-    
-    await ms.edit("```Uploading...```")
-    try:
-        if ph_path:
-            await bot.send_video(
-                msg.chat.id, video=file_path, thumb=ph_path, duration=duration,
-                caption=f"**{new_filename}**",
-                progress=progress_for_pyrogram,
-                progress_args=("```Uploading...```", ms, start_time)
-            )
+        if ph_path and os.path.exists(ph_path):
             os.remove(ph_path)
-        else:
-            await bot.send_video(
-                msg.chat.id, video=file_path, duration=duration,
-                caption=f"**{new_filename}**",
-                progress=progress_for_pyrogram,
-                progress_args=("```Uploading...```", ms, start_time)
-            )
-        await ms.delete()
-        os.remove(file_path)
-    except Exception as e:
-        await ms.edit(f"❌ Upload failed:\n{str(e)}")
-        os.remove(file_path)
-
-# ---------------- Audio Handler ---------------- #
-@Client.on_callback_query(filters.regex("aud"))
-async def aud(bot, update):
-    msg = update.message
-    if not msg.reply_to_message or not msg.reply_to_message.reply_to_message:
-        return await msg.edit("❌ Failed to get the original file message.")
-
-    file_msg = msg.reply_to_message.reply_to_message
-    new_name_text = msg.reply_to_message.text
-    try:
-        new_filename = new_name_text.split(":-")[1]
-    except IndexError:
-        return await msg.edit("❌ Invalid format. Use 'Name:-newfilename'")
-
-    file_path = os.path.join(DOWNLOADS, new_filename)
-    ms = await msg.edit("```Trying to download...```")
-    start_time = time.time()
-    
-    try:
-        downloaded_path = await bot.download_media(
-            file_msg, progress=progress_for_pyrogram,
-            progress_args=("```Downloading...```", ms, start_time)
-        )
-    except Exception as e:
-        return await ms.edit(f"❌ Download failed:\n{str(e)}")
-
-    os.rename(downloaded_path, file_path)
-    
-    # Get duration
-    duration = 0
-    metadata = extractMetadata(createParser(file_path))
-    if metadata.has("duration"):
-        duration = metadata.get("duration").seconds
-    
-    # Check thumbnail
-    user_id = msg.chat.id
-    thumb = find(user_id)
-    ph_path = None
-    if thumb:
-        ph_path = await bot.download_media(thumb)
-        img = Image.open(ph_path).convert("RGB")
-        img = img.resize((320, 320))
-        img.save(ph_path, "JPEG")
-    
-    await ms.edit("```Uploading...```")
-    try:
-        if ph_path:
-            await bot.send_audio(
-                msg.chat.id, audio=file_path, thumb=ph_path, duration=duration,
-                caption=f"**{new_filename}**",
-                progress=progress_for_pyrogram,
-                progress_args=("```Uploading...```", ms, start_time)
-            )
-            os.remove(ph_path)
-        else:
-            await bot.send_audio(
-                msg.chat.id, audio=file_path, duration=duration,
-                caption=f"**{new_filename}**",
-                progress=progress_for_pyrogram,
-                progress_args=("```Uploading...```", ms, start_time)
-            )
-        await ms.delete()
-        os.remove(file_path)
-    except Exception as e:
-        await ms.edit(f"❌ Upload failed:\n{str(e)}")
-        os.remove(file_path)
