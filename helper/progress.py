@@ -4,17 +4,15 @@ import time
 async def progress_for_pyrogram(current, total, ud_type, message, start):
     now = time.time()
     diff = now - start
-    if round(diff % 1.00) == 0 or current == total:  # update frequently
+    if round(diff % 1.00) == 0 or current == total:
         percentage = current * 100 / total
         speed = current / diff
         elapsed_time_ms = int(diff * 1000)
         remaining_time_ms = int((total - current) / speed * 1000 if speed else 0)
-        eta_ms = elapsed_time_ms + remaining_time_ms
 
         elapsed_time = TimeFormatter(elapsed_time_ms)
         eta = TimeFormatter(remaining_time_ms)
 
-        # Progress bar
         done_blocks = math.floor(percentage / 5)
         progress_bar = "Progress: [{}{}] {:.1f}%".format(
             "■" * done_blocks,
