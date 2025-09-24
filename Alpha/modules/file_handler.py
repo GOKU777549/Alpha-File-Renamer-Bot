@@ -12,7 +12,7 @@ from telegram.ext import (
 from Alpha import db
 from Alpha.utils.progress import progress_for_pyrogram
 
-# States for conversation
+# States
 ASK_FILENAME, ASK_TYPE = range(2)
 
 # Step 1: Detect file and ask for new name
@@ -64,7 +64,6 @@ async def ask_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     msg = await query.edit_message_text("Trying To Downloading....")
 
-    # Download
     os.makedirs("downloads", exist_ok=True)
     file_path = os.path.join("downloads", new_name)
 
@@ -75,7 +74,6 @@ async def ask_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
         progress_args=("Downloading", msg, file.file_size)
     )
 
-    # Upload
     caption = await db.get_caption(update.effective_user.id) or ""
     thumb = await db.get_thumb(update.effective_user.id)
 
@@ -106,7 +104,7 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Register handlers
 def register(application: Application):
     conv = ConversationHandler(
-        entry_points=[MessageHandler(filters.Document | filters.Video | filters.Audio, detect_file)],
+        entry_points=[MessageHandler(filters.Document | filters.VIDEO | filters.AUDIO, detect_file)],
         states={
             ASK_FILENAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_filename)],
             ASK_TYPE: [CallbackQueryHandler(ask_type)],
