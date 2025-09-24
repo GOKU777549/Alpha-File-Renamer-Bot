@@ -1,10 +1,35 @@
-import math, time
-from telegram import Message
+import math
+import time
+from datetime import datetime
+from telegram import Message  # for type hinting
 
-
-async def progress_for_pyrogram(current, total, ud_type, message: Message, total_size):
+async def progress_for_pyrogram(
+    current: int,
+    total: int,
+    ud_type: str,
+    message: Message,
+    total_size: int = None,
+    start_time: float = None,
+    markdown: bool = True
+):
+    """
+    Universal progress function for file upload/download
+    Works with Pyrogram & python-telegram-bot messages.
+    
+    Parameters:
+    - current: bytes transferred
+    - total: total bytes
+    - ud_type: string, "Uploading"/"Downloading"
+    - message: Message object
+    - total_size: total size in bytes (optional, for better display)
+    - start_time: timestamp when started (optional, defaults to message.date)
+    - markdown: whether to use Markdown formatting
+    """
     now = time.time()
-    diff = now - message.date.timestamp()
+    if start_time is None:
+        start_time = message.date.timestamp()  # fallback
+
+    diff = now - start_time
     if diff == 0:
         diff = 1
 
@@ -12,20 +37,29 @@ async def progress_for_pyrogram(current, total, ud_type, message: Message, total
     speed = current / diff
     eta = (total - current) / speed if speed != 0 else 0
 
-    progress_str = "[{0}{1}] {2}%".format(
-        ''.join(["■" for i in range(math.floor(percentage / 5))]),
-        ''.join(["□" for i in range(20 - math.floor(percentage / 5))]),
-        round(percentage, 2)
+    # Progress bar
+    progress_str = "[{0}{1}] {2:.2f}%".format(
+        "■" * int(percentage // 5),
+        "□" * (20 - int(percentage // 5)),
+        percentage
     )
 
-    text = f"""
-**{ud_type}**
-Progress: {progress_str}
-{round(current / 1024 / 1024, 2)} MB / {round(total_size / 1024 / 1024, 2)} MB
-⚡ Speed: {round(speed / 1024 / 1024, 2)} MB/s
-⏳ ETA: {time.strftime("%H:%M:%S", time.gmtime(eta))}
-"""
+    # Display sizes
+    current_mb = round(current / 1024 / 1024, 2)
+    total_mb = round(total_size / 1024 / 1024, 2) if total_size else round(total / 1024 / 1024, 2)
+    speed_mb = round(speed / 1024 / 1024, 2)
+
+    text = f"**{ud_type}**\n" \
+           f"Progress: {progress_str}\n" \
+           f"{current_mb} MB / {total_mb} MB\n" \
+           f"⚡ Speed: {speed_mb} MB/s\n" \
+           f"⏳ ETA: {time.strftime('%H:%M:%S', time.gmtime(eta))}"
+
+    # Try editing the message
     try:
-        await message.edit_text(text, parse_mode="Markdown")
+        if markdown:
+            await message.edit_text(text, parse_mode="Markdown")
+        else:
+            await message.edit_text(text)
     except:
         pass
