@@ -1,11 +1,14 @@
 from telegram import Update
-from telegram.ext import ContextTypes
-from Alpha import db  # your db.py
+from telegram.ext import CommandHandler, MessageHandler, ContextTypes, Application, filters
+from Alpha import db  # your existing db.py
+
+
+# ---------- Thumbnail Handlers ----------
 
 async def save_thumbnail(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.photo:
         return
-    photo = update.message.photo[-1].file_id
+    photo = update.message.photo[-1].file_id  # best quality
     await db.save_thumb(update.effective_user.id, photo)
     await update.message.reply_text("Thumbnail Saved Successfully ✅")
 
@@ -21,3 +24,11 @@ async def view_thumbnail(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("You Don't Have Any Thumbnail ❌")
     else:
         await update.message.reply_photo(photo=thumb_id, caption="Your Thumbnail 📸")
+
+
+# ---------- Register Handlers ----------
+def register(application):
+    """Register thumbnail handlers with the application"""
+    application.add_handler(MessageHandler(filters.PHOTO, save_thumbnail))
+    application.add_handler(CommandHandler("del_thumb", delete_thumbnail))
+    application.add_handler(CommandHandler("view_thumb", view_thumbnail))
