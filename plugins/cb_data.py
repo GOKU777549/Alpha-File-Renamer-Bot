@@ -4,17 +4,17 @@ from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, ForceReply
 from hachoir.metadata import extractMetadata
 from hachoir.parser import createParser
-from helper.database import find
+from helper.database import find, get_caption
 from helper.progress import progress_for_pyrogram
 
 DOWNLOADS = "downloads"
 os.makedirs(DOWNLOADS, exist_ok=True)
 
-# In-memory storage for pending renames
+# In-memory storage
 PENDING_RENAME = {}  # user_id -> message_id
 PENDING_NEWNAME = {}  # user_id -> new_name
 
-# -------------------- Handle incoming files -------------------- #
+# -------------------- Handle incoming files --------------------
 @Client.on_message(filters.private & (filters.document | filters.audio | filters.video))
 async def handle_file(client, message):
     file = message.document or message.audio or message.video
@@ -25,7 +25,7 @@ async def handle_file(client, message):
         reply_markup=ForceReply(True)
     )
 
-# -------------------- Handle new filename -------------------- #
+# -------------------- Handle new filename --------------------
 @Client.on_message(filters.private & filters.reply)
 async def rename_file(client, message):
     user_id = message.from_user.id
@@ -57,7 +57,7 @@ async def rename_file(client, message):
         ])
     )
 
-# -------------------- Callback for output type -------------------- #
+# -------------------- Callback for output type --------------------
 @Client.on_callback_query(filters.regex("as_"))
 async def handle_output_type(client, query):
     user_id = query.from_user.id
@@ -67,7 +67,6 @@ async def handle_output_type(client, query):
     orig_msg = await client.get_messages(query.message.chat.id, PENDING_RENAME[user_id])
     file = orig_msg.document or orig_msg.audio or orig_msg.video
     out_filename = PENDING_NEWNAME.pop(user_id)
-    ext = os.path.splitext(file.file_name)[1]
     file_path = os.path.join(DOWNLOADS, out_filename)
 
     await query.message.delete()
@@ -75,16 +74,24 @@ async def handle_output_type(client, query):
     start_time = time.time()
 
     downloaded_path = await client.download_media(
-        file, file_path, progress=progress_for_pyrogram,
+        file, file_path,
+        progress=progress_for_pyrogram,
         progress_args=("📥 Downloading", status, start_time)
     )
 
+    # Get thumbnail if set
     thumb = find(user_id)
     ph_path = None
     if thumb:
         ph_path = await client.download_media(thumb)
 
     await status.edit("⏳ Trying To Uploading ...")
+
+    # ------------------ Caption Integration ------------------ #
+    # Fetch caption from DB, fallback to default filename caption
+    caption_text = get_caption(user_id)
+    if not caption_text:
+        caption_text = f"File Name :- {out_filename}"
 
     try:
         if query.data == "as_video":
@@ -98,18 +105,23 @@ async def handle_output_type(client, query):
                 duration = 0
 
             await client.send_video(
-                query.message.chat.id, video=file_path, thumb=ph_path,
+                query.message.chat.id,
+                video=file_path,
+                thumb=ph_path,
                 duration=duration,
-                caption=f"File Name :- {out_filename}",
-                progress=progress_for_pyrogram, progress_args=("📤 Uploading", status, start_time)
+                caption=caption_text,
+                progress=progress_for_pyrogram,
+                progress_args=("📤 Uploading", status, start_time)
             )
-
         else:
-            # Upload as document (video or any type)
+            # Upload as document
             await client.send_document(
-                query.message.chat.id, document=file_path, thumb=ph_path,
-                caption=f"File Name :- {out_filename}",
-                progress=progress_for_pyrogram, progress_args=("📤 Uploading", status, start_time)
+                query.message.chat.id,
+                document=file_path,
+                thumb=ph_path,
+                caption=caption_text,
+                progress=progress_for_pyrogram,
+                progress_args=("📤 Uploading", status, start_time)
             )
 
         await status.delete()
