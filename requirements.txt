@@ -1,6 +1,13 @@
-python-telegram-bot
-pymongo
 motor
 aiohttp
-tqdm
+requests
+python-telegram-bot==21.4
+pymongo 
+pyrate-limiter==3.1.0
+apscheduler==3.6.3
+pyrogram
+tgcrypto 
+python-dotenv
+cachetools 
+regex
 psutil
