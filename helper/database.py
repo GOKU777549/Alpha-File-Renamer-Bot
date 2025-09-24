@@ -1,8 +1,8 @@
 import pymongo 
 import os
 
-DB_NAME = os.environ.get("DB_NAME","")
-DB_URL = os.environ.get("DB_URL","")
+DB_NAME = os.environ.get("DB_NAME","File-rename")
+DB_URL = os.environ.get("DB_URL","mongodb+srv://sufyan532011:5042@auctionbot.5ms20.mongodb.net/?retryWrites=true&w=majority&appName=AuctionBot")
 mongo = pymongo.MongoClient(DB_URL)
 db = mongo[DB_NAME]
 dbcol = db["user"]
