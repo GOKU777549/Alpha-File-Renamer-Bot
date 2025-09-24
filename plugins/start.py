@@ -12,24 +12,24 @@ CHANNEL = os.environ.get("CHANNEL", "Alpha_X_Updates")
 LIMIT = 240  # Flood control in seconds
 
 def get_wish():
-    current_time = datetime.datetime.now().hour
-    if current_time < 12:
+    hour = datetime.datetime.now().hour
+    if hour < 12:
         return "Good morning"
-    elif 12 <= current_time < 18:
+    elif 12 <= hour < 18:
         return "Good afternoon"
     else:
         return "Good evening"
 
 @Client.on_message(filters.private & filters.command("start"))
 async def start(client, message):
-    insert(int(message.chat.id))  # Make sure insert handles duplicates
+    insert(int(message.chat.id))  # Handle duplicates in insert
     wish = get_wish()
-    
+
     await message.reply_text(
         f"Hello {wish} {message.from_user.first_name}!\n"
         "__I am a file renamer bot. Please send any Telegram__\n"
         "**Document, Video, or Audio** and then enter a new filename to rename it.",
-        reply_to_message_id=message.message_id,
+        reply_to_message_id=message.id,
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("Support 🇮🇳", url="https://t.me/Alpha_X_Waifu")],
             [InlineKeyboardButton("Subscribe 🧐", url="https://t.me/Alpha_X_Updates")]
@@ -47,7 +47,7 @@ async def send_doc(client, message):
         except UserNotParticipant:
             return await message.reply_text(
                 "**__You are not subscribed to my channel__**",
-                reply_to_message_id=message.message_id,
+                reply_to_message_id=message.id,
                 reply_markup=InlineKeyboardMarkup([
                     [InlineKeyboardButton("Support 🇮🇳", url=f"https://t.me/{CHANNEL}")]
                 ])
@@ -63,12 +63,11 @@ async def send_doc(client, message):
         await client.send_chat_action(message.chat.id, "typing")
         return await message.reply_text(
             f"```Sorry! Flood control is active. Please wait {ltime}```",
-            reply_to_message_id=message.message_id
+            reply_to_message_id=message.id
         )
 
-    # Fetch media info
-    media = await client.get_messages(message.chat.id, message.message_id)
-    file = media.document or media.video or media.audio
+    # Fetch media info (no need to use get_messages)
+    file = message.document or message.video or message.audio
     filename = file.file_name
     filesize = humanize.naturalsize(file.file_size)
     dcid = FileId.decode(file.file_id).dc_id
@@ -79,7 +78,7 @@ async def send_doc(client, message):
         f"**File Name**: {filename}\n"
         f"**File Size**: {filesize}\n"
         f"**DC ID**: {dcid}",
-        reply_to_message_id=message.message_id,
+        reply_to_message_id=message.id,
         reply_markup=InlineKeyboardMarkup([
             [
                 InlineKeyboardButton("📝 Rename", callback_data="rename"),
