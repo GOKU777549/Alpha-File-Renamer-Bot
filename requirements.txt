@@ -3,3 +3,4 @@ pymongo
 motor
 aiohttp
 tqdm
+psutil
