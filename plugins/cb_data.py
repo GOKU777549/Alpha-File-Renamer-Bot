@@ -43,6 +43,21 @@ async def ask_rename(client, query):
         reply_markup=ForceReply(True)
     )
 
+# -------------------- Utility: Resize thumbnail 16:9 -------------------- #
+def resize_thumbnail_16_9(path, width=320):
+    """Resize thumbnail to 16:9 maintaining aspect ratio and padding"""
+    img = Image.open(path).convert("RGB")
+    w = width
+    h = int(width * 9 / 16)  # height for 16:9
+    # Preserve aspect ratio
+    img.thumbnail((w, h), Image.ANTIALIAS)
+
+    # Create 16:9 background
+    background = Image.new("RGB", (w, h), (0, 0, 0))
+    offset = ((w - img.width) // 2, (h - img.height) // 2)
+    background.paste(img, offset)
+    background.save(path, "JPEG")
+
 # -------------------- Handle new filename -------------------- #
 @Client.on_message(filters.private & filters.reply)
 async def rename_file(client, message):
@@ -79,9 +94,7 @@ async def rename_file(client, message):
     ph_path = None
     if thumb:
         ph_path = await client.download_media(thumb)
-        img = Image.open(ph_path).convert("RGB")
-        img = img.resize((320, 320))
-        img.save(ph_path, "JPEG")
+        resize_thumbnail_16_9(ph_path)
 
     # Upload file based on type
     await status.edit("Uploading...")
