@@ -1,19 +1,9 @@
 import os
-import time
-import math
-from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, InputFile
-from telegram.ext import (
-    Application,
-    ContextTypes,
-    CommandHandler,
-    MessageHandler,
-    CallbackQueryHandler,
-    ConversationHandler,
-    filters
-)
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputFile
+from telegram.ext import ContextTypes, ConversationHandler, MessageHandler, CallbackQueryHandler, CommandHandler, filters
 from Alpha import db
+from progress import progress_for_ptb  # import progress function
 
-# States
 ASK_FILENAME, ASK_TYPE = range(2)
 
 # Step 1: Detect file
@@ -26,47 +16,31 @@ async def detect_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     context.user_data["file"] = file
     await message.reply_text(
-        f"Please Enter New Filename...\n\nOld File Name: `{file.file_name}`",
-        parse_mode="Markdown"
+        f"Please enter the new filename:\n\nOld File Name: `{file.file_name}`",
+        parse_mode="Markdown",
     )
     return ASK_FILENAME
 
-# Step 2: Ask new filename
+# Step 2: Ask for new filename
 async def ask_filename(update: Update, context: ContextTypes.DEFAULT_TYPE):
     new_name = update.message.text
     context.user_data["new_name"] = new_name
 
     buttons = [
-        [InlineKeyboardButton("📄 Document", callback_data="document"),
-         InlineKeyboardButton("🎬 Video", callback_data="video")]
+        [
+            InlineKeyboardButton("📄 Document", callback_data="document"),
+            InlineKeyboardButton("🎬 Video", callback_data="video"),
+            InlineKeyboardButton("🎵 Audio", callback_data="audio"),
+        ]
     ]
     await update.message.reply_text(
         f"Select output type for `{new_name}`",
         parse_mode="Markdown",
-        reply_markup=InlineKeyboardMarkup(buttons)
+        reply_markup=InlineKeyboardMarkup(buttons),
     )
     return ASK_TYPE
 
-# Progress updater
-async def progress(current, total, message, start_time):
-    now = time.time()
-    diff = now - start_time
-    if diff == 0:
-        diff = 1
-    percentage = current * 100 / total
-    speed = current / diff
-    eta = (total - current) / speed if speed != 0 else 0
-    progress_str = "[" + "■" * int(percentage // 5) + "□" * (20 - int(percentage // 5)) + "]"
-    text = f"Progress: {progress_str} {percentage:.2f}%\n" \
-           f"{current/1024/1024:.2f}MB / {total/1024/1024:.2f}MB\n" \
-           f"Speed: {speed/1024/1024:.2f}MB/s\n" \
-           f"ETA: {time.strftime('%H:%M:%S', time.gmtime(eta))}"
-    try:
-        await message.edit_text(text)
-    except:
-        pass
-
-# Step 3: Handle type & download/upload
+# Step 3: Handle type, download & upload
 async def ask_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -75,8 +49,6 @@ async def ask_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
     file_type = query.data
 
     msg = await query.edit_message_text("📥 Downloading...")
-
-    # Ensure downloads folder
     os.makedirs("downloads", exist_ok=True)
     file_path = os.path.join("downloads", new_name)
 
@@ -87,27 +59,24 @@ async def ask_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await msg.edit_text("📤 Uploading...")
 
-    # Get caption & thumb
+    # Get caption and thumb
     caption = await db.get_caption(update.effective_user.id) or ""
     thumb_path = await db.get_thumb(update.effective_user.id)
     thumb_file = InputFile(thumb_path) if thumb_path and os.path.exists(thumb_path) else None
 
     # Send file
-    if file_type == "document":
-        await query.message.reply_document(
-            document=InputFile(file_path),
-            caption=caption,
-            thumb=thumb_file
-        )
-    else:
-        await query.message.reply_video(
-            video=InputFile(file_path),
-            caption=caption,
-            thumb=thumb_file,
-            supports_streaming=True
-        )
+    try:
+        if file_type == "document":
+            await query.message.reply_document(document=InputFile(file_path), caption=caption, thumb=thumb_file)
+        elif file_type == "video":
+            await query.message.reply_video(video=InputFile(file_path), caption=caption, thumb=thumb_file, supports_streaming=True)
+        elif file_type == "audio":
+            await query.message.reply_audio(audio=InputFile(file_path), caption=caption, thumb=thumb_file)
+    except Exception as e:
+        await msg.edit_text(f"❌ Upload failed: {e}")
+    finally:
+        os.remove(file_path)
 
-    os.remove(file_path)
     return ConversationHandler.END
 
 # Cancel handler
@@ -115,8 +84,8 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("❌ Process Cancelled")
     return ConversationHandler.END
 
-# Register
-def register(application: Application):
+# Register Handlers
+def register(application):
     conv = ConversationHandler(
         entry_points=[
             MessageHandler(filters.Document.ALL, detect_file),
