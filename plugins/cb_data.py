@@ -2,7 +2,6 @@ import os
 import time
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, ForceReply
-from PIL import Image
 from hachoir.metadata import extractMetadata
 from hachoir.parser import createParser
 from helper.database import find
@@ -43,21 +42,6 @@ async def ask_rename(client, query):
         reply_markup=ForceReply(True)
     )
 
-# -------------------- Utility: Resize thumbnail 16:9 -------------------- #
-def resize_thumbnail_16_9(path, width=320):
-    """Resize thumbnail to 16:9 maintaining aspect ratio and padding"""
-    img = Image.open(path).convert("RGB")
-    w = width
-    h = int(width * 9 / 16)  # height for 16:9
-    # Preserve aspect ratio
-    img.thumbnail((w, h), Image.ANTIALIAS)
-
-    # Create 16:9 background
-    background = Image.new("RGB", (w, h), (0, 0, 0))
-    offset = ((w - img.width) // 2, (h - img.height) // 2)
-    background.paste(img, offset)
-    background.save(path, "JPEG")
-
 # -------------------- Handle new filename -------------------- #
 @Client.on_message(filters.private & filters.reply)
 async def rename_file(client, message):
@@ -89,12 +73,11 @@ async def rename_file(client, message):
         progress_args=("Downloading...", status, start_time)
     )
 
-    # Thumbnail (if any)
+    # Thumbnail (if any) – ✅ keep original ratio, no resizing
     thumb = find(user_id)
     ph_path = None
     if thumb:
         ph_path = await client.download_media(thumb)
-        resize_thumbnail_16_9(ph_path)
 
     # Upload file based on type
     await status.edit("Uploading...")
