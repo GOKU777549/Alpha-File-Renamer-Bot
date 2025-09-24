@@ -5,7 +5,7 @@ from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from helper.database import insert
 
 CHANNEL = os.environ.get("CHANNEL", "Alpha_X_Updates")
-BOT_IMAGE = "https://files.catbox.moe/pmrycb.jpg"  # Yaha bot ka welcome image daal
+BOT_IMAGE = "https://files.catbox.moe/pmrycb.jpg"  # Welcome image
 
 def get_wish():
     hour = datetime.datetime.now().hour
@@ -57,7 +57,7 @@ async def cb_handler(client, query):
     if data == "how_to_use":
         text = (
             "ᴇᴅɢᴇ ʀᴇɴᴀᴍᴇ ᴀᴡᴇsᴏᴍᴇ ғᴇᴀᴛᴜʀᴇs🫧\n\n"
-            f"{user.bot.mention} ɪꜱ ᴀ ᴠᴇʀʏ ʜᴀɴᴅʏ ᴀɴᴅ ʜᴇʟᴘғᴜʟ ʙᴏᴛ  ᴛʜᴀᴛ ʜᴇʟᴘꜱ ʏᴏᴜ ʀᴇɴᴀᴍᴇ ᴀɴᴅ ᴍᴀɴᴀɢᴇ ʏᴏᴜʀ ꜰɪʟᴇꜱ ᴇꜰꜰᴏʀᴛʟᴇꜱꜱʟʏ.\n\n"
+            f"{user.bot.mention} ɪꜱ ᴀ ᴠᴇʀʏ ʜᴀɴᴅʏ ᴀɴᴅ ʜᴇʟᴘғᴜʟ ʙᴏᴛ ᴛʜᴀᴛ ʜᴇʟᴘꜱ ʏᴏᴜ ʀᴇɴᴀᴍᴇ ᴀɴᴅ ᴍᴀɴᴀɢᴇ ʏᴏᴜʀ ꜰɪʟᴇꜱ ᴇꜰꜰᴏʀᴛʟᴇꜱꜱʟʏ.\n\n"
             "ɪᴍᴘᴏʀᴛᴀɴᴛ ғᴇᴀᴛᴜʀᴇs:\n"
             "➲ ᴄᴀɴ ʀᴇɴᴀᴍᴇ ᴀɴʏ ғɪʟᴇs.\n"
             "➲ ᴄᴀɴ ᴍᴀɴᴀɢᴇ ᴍᴇᴛᴀᴅᴀᴛᴀ.\n"
@@ -66,7 +66,7 @@ async def cb_handler(client, query):
             "➲ ʀᴇɴᴀᴍᴇ ғɪʟᴇs ᴠᴇʀʏ ǫᴜɪᴄᴋʟʏ."
         )
         buttons = InlineKeyboardMarkup([[InlineKeyboardButton("BACK", callback_data="back")]])
-        await query.message.edit_caption(text=text, reply_markup=buttons)
+        await query.message.edit_caption(caption=text, reply_markup=buttons)
 
     elif data == "about":
         text = (
@@ -77,7 +77,7 @@ async def cb_handler(client, query):
             "» ᴍᴀɪɴ ɢʀᴏᴜᴘ : 𝗔𝗟𝗣𝗛𝗔 𝗕𝗢𝗧 [𝕊𝕌ℙℙ𝕆ℝ𝕋]"
         )
         buttons = InlineKeyboardMarkup([[InlineKeyboardButton("BACK", callback_data="back")]])
-        await query.message.edit_caption(text=text, reply_markup=buttons)
+        await query.message.edit_caption(caption=text, reply_markup=buttons)
 
     elif data == "donate":
         text = (
@@ -86,15 +86,14 @@ async def cb_handler(client, query):
             "Nᴏ ɴᴇᴇᴅ ᴛᴏ sᴛʀᴇss ᴀʙᴏᴜᴛ ᴅᴏɴᴀᴛɪᴏɴs – ʏᴏᴜʀ ʟɪᴛᴛʟᴇ sᴜᴘᴘᴏʀᴛ ᴀɴᴅ ᴄʟɪᴄᴋs ᴍᴇᴀɴ ᴛʜᴇ ᴡᴏʀʟᴅ ᴛᴏ ᴜs."
         )
         buttons = InlineKeyboardMarkup([[InlineKeyboardButton("BACK", callback_data="back")]])
-        await query.message.edit_caption(text=text, reply_markup=buttons)
+        await query.message.edit_caption(caption=text, reply_markup=buttons)
 
     elif data == "back":
-        # Go back to main start
         wish = get_wish()
         text = (
             f"ʜᴇʏ {user.mention}!✨\n\n"
             "🫧 ᴡᴇʟᴄᴏᴍᴇ ᴛᴏ ᴛʜᴇ ᴀᴅᴠᴀɴᴄᴇᴅ ʀᴇɴᴀᴍᴇ ʙᴏᴛ!\n"
-            "ᴡʜɪᴄʜ ᴄᴀɴ ᴍᴀɴᴜᴀʟʟʏ ʀᴇɴᴀᴍᴇ ʏᴏᴜʀ ғɪʟᴇs ᴡɪᴛʜ ᴄᴜsᴛᴏᴍ ᴄᴀᴘᴛɪᴏɴ ᴀɴᴅ ᴛʜᴜᴍʙɴᴀɪʟ ᴀɴᴅ ᴀʟsᴏ ᴄᴀɴ sᴇᴛ ᴘʀᴇғɪx ᴀɴᴅ sᴜғғɪx ᴏɴ ʏᴏᴜʀ ғɪʟᴇs.⚡️\n\n"
+            "ᴡʜɪᴄ ᴄᴀɴ ᴍᴀɴᴜᴀʟʟʏ ʀᴇɴᴀᴍᴇ ʏᴏᴜʀ ғɪʟᴇs ᴡɪᴛʜ ᴄᴜsᴛᴏᴍ ᴄᴀᴘᴛɪᴏɴ ᴀɴᴅ ᴛʜᴜᴍʙɴᴀɪʟ ᴀɴᴅ ᴀʟsᴏ ᴄᴀɴ sᴇᴛ ᴘʀᴇғɪx ᴀɴᴅ sᴜғғɪx ᴏɴ ʏᴏᴜʀ ғɪʟᴇs.⚡️\n\n"
             f"✨ ᴛʜɪs ʙᴏᴛ ɪs ᴄʀᴇᴀᴛᴇᴅ ʙʏ ⏤͟͟͞͞𝗔𝗫𝗕 • ɴᴀʀυᴛo | ࿐\n"
             "──────────────────\n"
             "๏ ᴄʟɪᴄᴋ ᴏɴ ᴛʜᴇ ʙᴜᴛᴛᴏɴs ʙᴇʟᴏᴡ ᴛᴏ ɢᴇᴛ ɪɴғᴏʀᴍᴀᴛɪᴏɴ ᴀʙᴏᴜᴛ ᴍʏ ᴄᴏᴍᴍᴀɴᴅs."
