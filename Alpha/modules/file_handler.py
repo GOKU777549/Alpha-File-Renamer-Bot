@@ -1,13 +1,19 @@
 import os
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import Application, ContextTypes, CommandHandler, MessageHandler, filters, ConversationHandler
+from telegram.ext import (
+    Application,
+    ContextTypes,
+    CommandHandler,
+    MessageHandler,
+    CallbackQueryHandler,
+    ConversationHandler,
+    filters
+)
 from Alpha import db
 from Alpha.utils.progress import progress_for_pyrogram
 
-
 # States for conversation
 ASK_FILENAME, ASK_TYPE = range(2)
-
 
 # Step 1: Detect file and ask for new name
 async def detect_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -22,7 +28,7 @@ async def detect_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
         file = message.audio
 
     if not file:
-        return
+        return ConversationHandler.END
 
     context.user_data["file"] = file
     await message.reply_text(
@@ -30,7 +36,6 @@ async def detect_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown"
     )
     return ASK_FILENAME
-
 
 # Step 2: Get new filename
 async def ask_filename(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -48,7 +53,6 @@ async def ask_filename(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return ASK_TYPE
 
-
 # Step 3: Process file with type
 async def ask_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -61,8 +65,8 @@ async def ask_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = await query.edit_message_text("Trying To Downloading....")
 
     # Download
-    file_path = os.path.join("downloads", new_name)
     os.makedirs("downloads", exist_ok=True)
+    file_path = os.path.join("downloads", new_name)
 
     tfile = await file.get_file()
     await tfile.download_to_drive(
@@ -94,19 +98,18 @@ async def ask_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
     os.remove(file_path)
     return ConversationHandler.END
 
-
 # Cancel handler
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("❌ Process Cancelled")
     return ConversationHandler.END
 
-
+# Register handlers
 def register(application: Application):
     conv = ConversationHandler(
-        entry_points=[MessageHandler(filters.Document | filters.Video | filters.Audio, detect_file)],
+        entry_points=[MessageHandler(filters.DOCUMENT | filters.VIDEO | filters.AUDIO, detect_file)],
         states={
             ASK_FILENAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_filename)],
-            ASK_TYPE: [MessageHandler(filters.ALL, cancel)],
+            ASK_TYPE: [CallbackQueryHandler(ask_type)],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
         allow_reentry=True
