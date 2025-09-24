@@ -104,7 +104,11 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Register handlers
 def register(application: Application):
     conv = ConversationHandler(
-        entry_points=[MessageHandler(filters.Document | filters.VIDEO | filters.AUDIO, detect_file)],
+        entry_points=[
+            MessageHandler(filters.Document.ALL, detect_file),
+            MessageHandler(filters.VIDEO, detect_file),
+            MessageHandler(filters.AUDIO, detect_file)
+        ],
         states={
             ASK_FILENAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_filename)],
             ASK_TYPE: [CallbackQueryHandler(ask_type)],
