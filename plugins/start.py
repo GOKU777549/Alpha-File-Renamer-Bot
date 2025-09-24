@@ -6,7 +6,7 @@ from pyrogram.types import ( InlineKeyboardButton, InlineKeyboardMarkup,ForceRep
 import humanize
 from helper.database import  insert ,find_one
 from pyrogram.file_id import FileId
-CHANNEL = os.environ.get("CHANNEL", "")
+CHANNEL = os.environ.get("CHANNEL", "Alpha_X_Updates")
 import datetime
 
 #Part of Day --------------------
@@ -30,8 +30,8 @@ async def start(client,message):
 	**Document Or Video** and enter new filename to rename it__
 	""",reply_to_message_id = message.message_id ,  
 	reply_markup=InlineKeyboardMarkup(
-	 [[ InlineKeyboardButton("Support 🇮🇳" ,url="https://t.me/lntechnical") ], 
-	[InlineKeyboardButton("Subscribe 🧐", url="https://youtube.com/c/LNtechnical") ]  ]))
+	 [[ InlineKeyboardButton("Support 🇮🇳" ,url="https://t.me/Alpha_X_Waifu") ], 
+	[InlineKeyboardButton("Subscribe 🧐", url="https://t.me/Alpha_X_Updates") ]  ]))
 
 
 
