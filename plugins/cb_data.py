@@ -11,7 +11,7 @@ from helper.progress import progress_for_pyrogram
 DOWNLOADS = "downloads"
 os.makedirs(DOWNLOADS, exist_ok=True)
 
-# In-memory storage for pending renames
+# Temporary in-memory storage to track pending renames
 PENDING_RENAME = {}  # user_id -> file_message_id
 
 # -------------------- Handle incoming files -------------------- #
@@ -50,7 +50,7 @@ async def rename_file(client, message):
     if user_id not in PENDING_RENAME:
         return  # nothing pending
 
-    new_name = message.text
+    new_name = message.text.strip()
     await message.delete()
 
     file_msg_id = PENDING_RENAME.pop(user_id)
@@ -88,9 +88,13 @@ async def rename_file(client, message):
     try:
         if orig_msg.video:
             duration = 0
-            metadata = extractMetadata(createParser(file_path))
-            if metadata.has("duration"):
-                duration = metadata.get("duration").seconds
+            try:
+                metadata = extractMetadata(createParser(file_path))
+                if metadata and metadata.has("duration"):
+                    duration = metadata.get("duration").seconds
+            except Exception:
+                duration = 0  # fallback if metadata fails
+
             await client.send_video(
                 message.chat.id, video=file_path, thumb=ph_path,
                 duration=duration, caption=out_filename,
