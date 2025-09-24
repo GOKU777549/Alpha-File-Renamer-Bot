@@ -10,47 +10,18 @@ from helper.progress import progress_for_pyrogram
 DOWNLOADS = "downloads"
 os.makedirs(DOWNLOADS, exist_ok=True)
 
-# Temporary in-memory storage to track pending renames
-PENDING_RENAME = {}  # user_id -> file_message_id
+# In-memory storage for pending renames
+PENDING_RENAME = {}  # user_id -> message_id
+PENDING_NEWNAME = {}  # user_id -> new_name
 
 # -------------------- Handle incoming files -------------------- #
 @Client.on_message(filters.private & (filters.document | filters.audio | filters.video))
 async def handle_file(client, message):
     file = message.document or message.audio or message.video
-    filename = file.file_name
-    filesize = humanbytes(file.file_size)
-    dcid = getattr(file, "dc_id", "N/A")
-
-    await message.reply_text(
-        f"📥 **New File Received** 📥\n\n"
-        f"**File Name**: {filename}\n"
-        f"**File Size**: {filesize}\n"
-        f"**DC ID**: {dcid}",
-        reply_markup=InlineKeyboardMarkup([
-            [
-                InlineKeyboardButton("📝 Rename", callback_data="rename"),
-                InlineKeyboardButton("✖️ Cancel", callback_data="cancel")
-            ]
-        ])
-    )
-
-    # Store original file message ID
     PENDING_RENAME[message.from_user.id] = message.id
 
-# -------------------- Ask for new filename -------------------- #
-@Client.on_callback_query(filters.regex("rename"))
-async def ask_rename(client, query):
-    user_id = query.from_user.id
-    if user_id not in PENDING_RENAME:
-        return await query.answer("❌ No file found to rename.", show_alert=True)
-
-    await query.message.delete()
-    await query.message.reply_text(
-        "✏️ Please Enter New Filename...\n\nOld File Name :- {}".format(
-            (await client.get_messages(query.message.chat.id, PENDING_RENAME[user_id])).document.file_name
-            if (await client.get_messages(query.message.chat.id, PENDING_RENAME[user_id])).document
-            else "Unknown"
-        ),
+    await message.reply_text(
+        f"✏️ Please Enter New Filename...\n\nOld File Name :- {file.file_name}",
         reply_markup=ForceReply(True)
     )
 
@@ -63,10 +34,9 @@ async def rename_file(client, message):
 
     new_name = message.text.strip()
     await message.delete()
+    PENDING_NEWNAME[user_id] = new_name
 
-    file_msg_id = PENDING_RENAME.pop(user_id)
-    orig_msg = await client.get_messages(message.chat.id, file_msg_id)
-
+    orig_msg = await client.get_messages(message.chat.id, PENDING_RENAME[user_id])
     file = orig_msg.document or orig_msg.audio or orig_msg.video
     if not file:
         return await message.reply_text("❌ Original file not found.")
@@ -74,13 +44,39 @@ async def rename_file(client, message):
     old_name = file.file_name
     ext = os.path.splitext(old_name)[1]
     out_filename = new_name if "." in new_name else new_name + ext
+    PENDING_NEWNAME[user_id] = out_filename
+
+    # Ask output type
+    await orig_msg.reply_text(
+        f"Select The Output File Type\n\nFile Name :- {out_filename}",
+        reply_markup=InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("📄 Document", callback_data="as_document"),
+                InlineKeyboardButton("🎬 Video", callback_data="as_video")
+            ]
+        ])
+    )
+
+# -------------------- Callback for output type -------------------- #
+@Client.on_callback_query(filters.regex("as_"))
+async def handle_output_type(client, query):
+    user_id = query.from_user.id
+    if user_id not in PENDING_RENAME or user_id not in PENDING_NEWNAME:
+        return await query.answer("❌ No file pending.", show_alert=True)
+
+    orig_msg = await client.get_messages(query.message.chat.id, PENDING_RENAME[user_id])
+    file = orig_msg.document or orig_msg.audio or orig_msg.video
+    out_filename = PENDING_NEWNAME.pop(user_id)
+    ext = os.path.splitext(file.file_name)[1]
     file_path = os.path.join(DOWNLOADS, out_filename)
 
-    status = await message.reply_text("⏳ Trying To Downloading ...")
+    await query.message.delete()
+    status = await query.message.reply_text("⏳ Trying To Downloading ...")
     start_time = time.time()
+
     downloaded_path = await client.download_media(
         file, file_path, progress=progress_for_pyrogram,
-        progress_args=("📥 Downloading...", status, start_time)
+        progress_args=("📥 Downloading", status, start_time)
     )
 
     thumb = find(user_id)
@@ -89,8 +85,10 @@ async def rename_file(client, message):
         ph_path = await client.download_media(thumb)
 
     await status.edit("⏳ Trying To Uploading ...")
+
     try:
-        if orig_msg.video:
+        if query.data == "as_video":
+            # Upload as video
             duration = 0
             try:
                 metadata = extractMetadata(createParser(file_path))
@@ -100,41 +98,24 @@ async def rename_file(client, message):
                 duration = 0
 
             await client.send_video(
-                message.chat.id, video=file_path, thumb=ph_path,
+                query.message.chat.id, video=file_path, thumb=ph_path,
                 duration=duration,
                 caption=f"File Name :- {out_filename}",
-                progress=progress_for_pyrogram, progress_args=("📤 Uploading...", status, start_time)
+                progress=progress_for_pyrogram, progress_args=("📤 Uploading", status, start_time)
             )
 
-        elif orig_msg.audio:
-            await client.send_audio(
-                message.chat.id, audio=file_path, thumb=ph_path,
-                caption=f"File Name :- {out_filename}",
-                progress=progress_for_pyrogram, progress_args=("📤 Uploading...", status, start_time)
-            )
         else:
+            # Upload as document (video or any type)
             await client.send_document(
-                message.chat.id, document=file_path, thumb=ph_path,
+                query.message.chat.id, document=file_path, thumb=ph_path,
                 caption=f"File Name :- {out_filename}",
-                progress=progress_for_pyrogram, progress_args=("📤 Uploading...", status, start_time)
+                progress=progress_for_pyrogram, progress_args=("📤 Uploading", status, start_time)
             )
 
         await status.delete()
+
     finally:
         if os.path.exists(file_path):
             os.remove(file_path)
         if ph_path and os.path.exists(ph_path):
             os.remove(ph_path)
-
-
-# -------------------- Utility -------------------- #
-def humanbytes(size):
-    if not size:
-        return ""
-    power = 2 ** 10
-    n = 0
-    Dic_powerN = {0: '', 1: 'Ki', 2: 'Mi', 3: 'Gi', 4: 'Ti'}
-    while size > power:
-        size /= power
-        n += 1
-    return f"{round(size,2)} {Dic_powerN[n]}B"
