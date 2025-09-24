@@ -27,7 +27,7 @@ async def start(client, message):
         f"ʜᴇʏ {user.mention}!✨\n\n"
         "🫧 ᴡᴇʟᴄᴏᴍᴇ ᴛᴏ ᴛʜᴇ ᴀᴅᴠᴀɴᴄᴇᴅ ʀᴇɴᴀᴍᴇ ʙᴏᴛ!\n"
         "ᴡʜɪᴄʜ ᴄᴀɴ ᴍᴀɴᴜᴀʟʟʏ ʀᴇɴᴀᴍᴇ ʏᴏᴜʀ ғɪʟᴇs ᴡɪᴛʜ ᴄᴜsᴛᴏᴍ ᴄᴀᴘᴛɪᴏɴ ᴀɴᴅ ᴛʜᴜᴍʙɴᴀɪʟ ᴀɴᴅ ᴀʟsᴏ ᴄᴀɴ sᴇᴛ ᴘʀᴇғɪx ᴀɴᴅ sᴜғғɪx ᴏɴ ʏᴏᴜʀ ғɪʟᴇs.⚡️\n\n"
-        f"✨ ᴛʜɪs ʙᴏᴛ ɪs ᴄʀᴇᴀᴛᴇᴅ ʙʏ ⏤͟͟͞͞𝗔𝗫𝗕 • ɴᴀʀυᴛo | ࿐\n"
+        f"✨ ᴛʜɪs ʙᴏᴛ ɪs ᴄʀᴇᴀᴛᴇᴅ ʙʏ <a href=https://t.me/Uzumaki_X_Naruto_6>⏤͟͟͞͞𝗔𝗫𝗕 • ɴᴀʀυᴛo | ࿐</a>\n"
         "──────────────────\n"
         "๏ ᴄʟɪᴄᴋ ᴏɴ ᴛʜᴇ ʙᴜᴛᴛᴏɴs ʙᴇʟᴏᴡ ᴛᴏ ɢᴇᴛ ɪɴғᴏʀᴍᴀᴛɪᴏɴ ᴀʙᴏᴜᴛ ᴍʏ ᴄᴏᴍᴍᴀɴᴅs."
     )
@@ -70,11 +70,11 @@ async def cb_handler(client, query):
 
     elif data == "about":
         text = (
-            "» ᴅᴇᴠᴇʟᴏᴩᴇʀ : ⏤͟͟͞͞𝗔𝗫𝗕 • ɴᴀʀυᴛo | ࿐\n"
+            "» ᴅᴇᴠᴇʟᴏᴩᴇʀ : <a href=https://t.me/Uzumaki_X_Naruto_6>⏤͟͟͞͞𝗔𝗫𝗕 • ɴᴀʀυᴛo | ࿐</a>\n"
             "» ʟɪʙʀᴀʀʏ : ᴘʏʀᴏɢʀᴀᴍ\n"
             "» ʟᴀɴɢᴜᴀɢᴇ: ᴘʏᴛʜᴏɴ\n"
-            f"» ᴍᴀɪɴ ᴄʜᴀɴɴᴇʟ : {CHANNEL}\n"
-            "» ᴍᴀɪɴ ɢʀᴏᴜᴘ : 𝗔𝗟𝗣𝗛𝗔 𝗕𝗢𝗧 [𝕊𝕌ℙℙ𝕆ℝ𝕋]"
+            f"» ᴍᴀɪɴ ᴄʜᴀɴɴᴇʟ : <a href=https://t.me/Alpha_X_Updates>𝗔𝗟𝗣𝗛𝗔 X 𝗪𝗔𝗜𝗙𝗨 [𝕌ℙ𝔻𝔸𝕋𝔼]</a>\n"
+            "» ᴍᴀɪɴ ɢʀᴏᴜᴘ : <a href=https://t.me/Alpha_X_Updates>𝗔𝗟𝗣𝗛𝗔 𝗕𝗢𝗧 [𝕊𝕌ℙℙ𝕆ℝ𝕋]</a>"
         )
         buttons = InlineKeyboardMarkup([[InlineKeyboardButton("BACK", callback_data="back")]])
         await query.message.edit_caption(caption=text, reply_markup=buttons)
@@ -94,7 +94,7 @@ async def cb_handler(client, query):
             f"ʜᴇʏ {user.mention}!✨\n\n"
             "🫧 ᴡᴇʟᴄᴏᴍᴇ ᴛᴏ ᴛʜᴇ ᴀᴅᴠᴀɴᴄᴇᴅ ʀᴇɴᴀᴍᴇ ʙᴏᴛ!\n"
             "ᴡʜɪᴄ ᴄᴀɴ ᴍᴀɴᴜᴀʟʟʏ ʀᴇɴᴀᴍᴇ ʏᴏᴜʀ ғɪʟᴇs ᴡɪᴛʜ ᴄᴜsᴛᴏᴍ ᴄᴀᴘᴛɪᴏɴ ᴀɴᴅ ᴛʜᴜᴍʙɴᴀɪʟ ᴀɴᴅ ᴀʟsᴏ ᴄᴀɴ sᴇᴛ ᴘʀᴇғɪx ᴀɴᴅ sᴜғғɪx ᴏɴ ʏᴏᴜʀ ғɪʟᴇs.⚡️\n\n"
-            f"✨ ᴛʜɪs ʙᴏᴛ ɪs ᴄʀᴇᴀᴛᴇᴅ ʙʏ ⏤͟͟͞͞𝗔𝗫𝗕 • ɴᴀʀυᴛo | ࿐\n"
+            f"✨ ᴛʜɪs ʙᴏᴛ ɪs ᴄʀᴇᴀᴛᴇᴅ ʙʏ <a href=https://t.me/Uzumaki_X_Naruto_6>⏤͟͟͞͞𝗔𝗫𝗕 • ɴᴀʀυᴛo | ࿐</a>\n"
             "──────────────────\n"
             "๏ ᴄʟɪᴄᴋ ᴏɴ ᴛʜᴇ ʙᴜᴛᴛᴏɴs ʙᴇʟᴏᴡ ᴛᴏ ɢᴇᴛ ɪɴғᴏʀᴍᴀᴛɪᴏɴ ᴀʙᴏᴜᴛ ᴍʏ ᴄᴏᴍᴍᴀɴᴅs."
         )
