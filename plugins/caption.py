@@ -10,15 +10,20 @@ async def set_caption_cmd(client, message):
 
     if len(args) == 1:
         return await message.reply_text(
-            "❌ Usage:\n/set_caption <your caption text>\n\n"
-            "Example:\n/set_caption 480P"
+            "Gɪᴠᴇ Tʜᴇ Cᴀᴩᴛɪᴏɴ
+
+Exᴀᴍᴩʟᴇ:- /set_caption {filename}
+
+💾 Sɪᴢᴇ: {filesize}
+
+⏰ Dᴜʀᴀᴛɪᴏɴ: {duration}"
         )
 
     caption_text = args[1].strip()
     save_caption(user_id, caption_text)
 
     await message.reply_text(
-        f"✅ Default caption saved.\n\nYᴏᴜ'ʀᴇ Cᴀᴩᴛɪᴏɴ:-\n\n{caption_text}"
+        f"✅ Cᴀᴩᴛɪᴏɴ Sᴀᴠᴇᴅ"
     )
 
 
@@ -29,7 +34,7 @@ async def see_caption_cmd(client, message):
     caption_text = get_caption(user_id)
 
     if not caption_text:
-        return await message.reply_text("❌️ No default caption found for you.")
+        return await message.reply_text("😔 Yᴏᴜ Dᴏɴ'ᴛ Hᴀᴠᴇ Aɴy Cᴀᴩᴛɪᴏɴ")
 
     await message.reply_text(f"📝 Yᴏᴜ'ʀᴇ Cᴀᴩᴛɪᴏɴ:-\n\n{caption_text}")
 
@@ -40,9 +45,9 @@ async def del_caption_cmd(client, message):
     user_id = message.from_user.id
     if get_caption(user_id):
         del_caption(user_id)
-        return await message.reply_text("❌️ Default caption deleted.")
+        return await message.reply_text("❌️ Cᴀᴩᴛɪᴏɴ Dᴇʟᴇᴛᴇᴅ")
     else:
-        return await message.reply_text("❌️ No default caption found for you.")
+        return await message.reply_text("😔 Yᴏᴜ Dᴏɴ'ᴛ Hᴀᴠᴇ Aɴy Cᴀᴩᴛɪᴏɴ")
 
 
 # -------------------- Helper for Renamer Bot -------------------- #
