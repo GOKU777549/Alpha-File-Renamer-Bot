@@ -21,7 +21,7 @@ async def handle_file(client, message):
     PENDING_RENAME[message.from_user.id] = message.id
 
     await message.reply_text(
-        f"✏️ Please Enter New Filename...\n\nOld File Name :- {file.file_name}",
+        f"✏️ Pʟᴇᴀsᴇ Eɴᴛᴇʀ Nᴇᴡ Fɪʟᴇɴᴀᴍᴇ...\n\nOʟᴅ Fɪʟᴇɴᴀᴍᴇ :- {file.file_name}",
         reply_markup=ForceReply(True)
     )
 
@@ -51,8 +51,8 @@ async def rename_file(client, message):
         f"Select The Output File Type\n\nFile Name :- {out_filename}",
         reply_markup=InlineKeyboardMarkup([
             [
-                InlineKeyboardButton("📄 Document", callback_data="as_document"),
-                InlineKeyboardButton("🎬 Video", callback_data="as_video")
+                InlineKeyboardButton("Dᴏᴄᴜᴍᴇɴᴛ", callback_data="as_document"),
+                InlineKeyboardButton("Vɪᴅᴇᴏ", callback_data="as_video")
             ]
         ])
     )
@@ -70,13 +70,13 @@ async def handle_output_type(client, query):
     file_path = os.path.join(DOWNLOADS, out_filename)
 
     await query.message.delete()
-    status = await query.message.reply_text("⏳ Trying To Downloading ...")
+    status = await query.message.reply_text("Tʀʏɪɴɢ Tᴏ Dᴏᴡɴʟᴏᴀᴅɪɴɢ ...")
     start_time = time.time()
 
     downloaded_path = await client.download_media(
         file, file_path,
         progress=progress_for_pyrogram,
-        progress_args=("📥 Downloading", status, start_time)
+        progress_args=("Downloading", status, start_time)
     )
 
     # Get thumbnail if set
@@ -85,7 +85,7 @@ async def handle_output_type(client, query):
     if thumb:
         ph_path = await client.download_media(thumb)
 
-    await status.edit("⏳ Trying To Uploading ...")
+    await status.edit("Tʀʏɪɴɢ Tᴏ Uᴘʟᴏᴀᴅɪɴɢ ...")
 
     # ------------------ Caption Integration ------------------ #
     # Fetch caption from DB, fallback to default filename caption
@@ -111,7 +111,7 @@ async def handle_output_type(client, query):
                 duration=duration,
                 caption=caption_text,
                 progress=progress_for_pyrogram,
-                progress_args=("📤 Uploading", status, start_time)
+                progress_args=("Uploading", status, start_time)
             )
         else:
             # Upload as document
@@ -121,7 +121,7 @@ async def handle_output_type(client, query):
                 thumb=ph_path,
                 caption=caption_text,
                 progress=progress_for_pyrogram,
-                progress_args=("📤 Uploading", status, start_time)
+                progress_args=("Uploading", status, start_time)
             )
 
         await status.delete()
