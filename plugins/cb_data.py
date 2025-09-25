@@ -10,11 +10,11 @@ from helper.progress import progress_for_pyrogram
 DOWNLOADS = "downloads"
 os.makedirs(DOWNLOADS, exist_ok=True)
 
-# In-memory storage
+# ---------------- In-memory storage ----------------
 PENDING_RENAME = {}  # user_id -> message_id
 PENDING_NEWNAME = {}  # user_id -> new_name
 
-# -------------------- Handle incoming files --------------------
+# ------------------ Handle incoming files ----------------
 @Client.on_message(filters.private & (filters.document | filters.audio | filters.video))
 async def handle_file(client, message):
     file = message.document or message.audio or message.video
@@ -25,7 +25,7 @@ async def handle_file(client, message):
         reply_markup=ForceReply(True)
     )
 
-# -------------------- Handle new filename --------------------
+# ------------------ Handle new filename ----------------
 @Client.on_message(filters.private & filters.reply)
 async def rename_file(client, message):
     user_id = message.from_user.id
@@ -57,7 +57,7 @@ async def rename_file(client, message):
         ])
     )
 
-# -------------------- Callback for output type --------------------
+# ------------------ Callback for output type ----------------
 @Client.on_callback_query(filters.regex("as_"))
 async def handle_output_type(client, query):
     user_id = query.from_user.id
@@ -73,13 +73,14 @@ async def handle_output_type(client, query):
     status = await query.message.reply_text("Tʀʏɪɴɢ Tᴏ Dᴏᴡɴʟᴏᴀᴅɪɴɢ ...")
     start_time = time.time()
 
+    # ---------------- Download ----------------
     downloaded_path = await client.download_media(
         file, file_path,
         progress=progress_for_pyrogram,
         progress_args=("Downloading", status, start_time)
     )
 
-    # Get thumbnail if set
+    # ---------------- Thumbnail ----------------
     thumb = find(user_id)
     ph_path = None
     if thumb:
@@ -87,15 +88,13 @@ async def handle_output_type(client, query):
 
     await status.edit("Tʀʏɪɴɢ Tᴏ Uᴘʟᴏᴀᴅɪɴɢ ...")
 
-    # ------------------ Caption Integration ------------------ #
-    # Fetch caption from DB, fallback to default filename caption
+    # ---------------- Caption ----------------
     caption_text = get_caption(user_id)
     if not caption_text:
         caption_text = f"File Name :- {out_filename}"
 
     try:
         if query.data == "as_video":
-            # Upload as video
             duration = 0
             try:
                 metadata = extractMetadata(createParser(file_path))
@@ -114,7 +113,6 @@ async def handle_output_type(client, query):
                 progress_args=("Uploading", status, start_time)
             )
         else:
-            # Upload as document
             await client.send_document(
                 query.message.chat.id,
                 document=file_path,
@@ -125,7 +123,6 @@ async def handle_output_type(client, query):
             )
 
         await status.delete()
-
     finally:
         if os.path.exists(file_path):
             os.remove(file_path)
