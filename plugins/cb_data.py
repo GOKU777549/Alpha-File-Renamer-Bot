@@ -10,7 +10,6 @@ from helper.progress import progress_for_pyrogram
 DOWNLOADS = "downloads"
 os.makedirs(DOWNLOADS, exist_ok=True)
 
-# ---------------- In-memory storage ----------------
 # user_id -> { orig_msg_id: { "reply_msg_id": ..., "new_name": ..., "final_name": ... } }
 PENDING_TASKS = {}
 
@@ -28,7 +27,8 @@ async def handle_file(client, message):
 
     reply = await message.reply_text(
         f"✏️ Pʟᴇᴀsᴇ Eɴᴛᴇʀ Nᴇᴡ Fɪʟᴇɴᴀᴍᴇ...\n\nOʟᴅ Fɪʟᴇɴᴀᴍᴇ :- {file.file_name}",
-        reply_markup=ForceReply(True)
+        reply_markup=ForceReply(True),
+        quote=True
     )
 
     PENDING_TASKS[user_id][message.id]["reply_msg_id"] = reply.id
@@ -62,7 +62,7 @@ async def rename_file(client, message):
     orig_msg = await client.get_messages(message.chat.id, orig_msg_id)
     file = orig_msg.document or orig_msg.audio or orig_msg.video
     if not file:
-        return await message.reply_text("❌ Original file not found.")
+        return await orig_msg.reply_text("❌ Original file not found.")
 
     old_name = file.file_name
     ext = os.path.splitext(old_name)[1]
@@ -76,7 +76,8 @@ async def rename_file(client, message):
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("Dᴏᴄᴜᴍᴇɴᴛ", callback_data=f"as_document:{orig_msg_id}")],
             [InlineKeyboardButton("Vɪᴅᴇᴏ", callback_data=f"as_video:{orig_msg_id}")]
-        ])
+        ]),
+        quote=True
     )
 
 
@@ -100,7 +101,7 @@ async def handle_output_type(client, query):
     await query.message.delete()
 
     # ---------------- Download ----------------
-    status = await orig_msg.reply_text("Tʀʏɪɴɢ Tᴏ Dᴏᴡɴʟᴏᴀᴅɪɴɢ ...")
+    status = await orig_msg.reply_text("Tʀʏɪɴɢ Tᴏ Dᴏᴡɴʟᴏᴀᴅɪɴɢ ...", quote=True)
     start_time = time.time()
 
     downloaded_path = await client.download_media(
@@ -130,23 +131,23 @@ async def handle_output_type(client, query):
             except:
                 duration = 0
 
-            await client.send_video(
-                query.message.chat.id,
+            await orig_msg.reply_video(
                 video=file_path,
                 thumb=ph_path,
                 duration=duration,
                 caption=caption_text,
                 progress=progress_for_pyrogram,
-                progress_args=("Uploading", status, start_time)
+                progress_args=("Uploading", status, start_time),
+                quote=True
             )
         else:
-            await client.send_document(
-                query.message.chat.id,
+            await orig_msg.reply_document(
                 document=file_path,
                 thumb=ph_path,
                 caption=caption_text,
                 progress=progress_for_pyrogram,
-                progress_args=("Uploading", status, start_time)
+                progress_args=("Uploading", status, start_time),
+                quote=True
             )
 
         await status.delete()
