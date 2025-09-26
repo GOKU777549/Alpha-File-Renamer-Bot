@@ -58,15 +58,13 @@ async def rename_file(client, message):
     PENDING_NEWNAME[user_id]["final_name"] = out_filename
 
     # Ask output type
-    await orig_msg.reply_text(
-        f"Select The Output File Type\n\nFile Name :- {out_filename}",
-        reply_markup=InlineKeyboardMarkup([
-            [
-                InlineKeyboardButton("Dᴏᴄᴜᴍᴇɴᴛ", callback_data="as_document"),
-                InlineKeyboardButton("Vɪᴅᴇᴏ", callback_data="as_video")
-            ]
-        ])
-    )
+await orig_msg.reply_text(
+    f"Select The Output File Type\n\nFile Name :- {out_filename}",
+    reply_markup=InlineKeyboardMarkup([
+        [InlineKeyboardButton("Dᴏᴄᴜᴍᴇɴᴛ", callback_data="as_document")],
+        [InlineKeyboardButton("Vɪᴅᴇᴏ", callback_data="as_video")]
+    ])
+)
 
 # ------------------ Callback for output type ----------------
 @Client.on_callback_query(filters.regex("as_"))
