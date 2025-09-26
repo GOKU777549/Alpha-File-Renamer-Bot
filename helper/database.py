@@ -11,6 +11,10 @@ db = mongo[DB_NAME]
 dbcol = db["user"]
 caption_col = db["caption"]
 
+def total_users():
+    """Return total users count"""
+    return dbcol.count_documents({})
+
 def insert(chat_id):
     user_id = int(chat_id)
     user_det = {"_id": user_id, "file_id": None, "date": 0}
