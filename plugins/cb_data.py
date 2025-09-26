@@ -57,8 +57,7 @@ async def rename_file(client, message):
     out_filename = new_name if "." in new_name else new_name + ext
     PENDING_NEWNAME[user_id]["final_name"] = out_filename
 
-    # Ask output type
-await orig_msg.reply_text(
+    await orig_msg.reply_text(
     f"Select The Output File Type\n\nFile Name :- {out_filename}",
     reply_markup=InlineKeyboardMarkup([
         [InlineKeyboardButton("Dᴏᴄᴜᴍᴇɴᴛ", callback_data="as_document")],
