@@ -5,3 +5,4 @@ kurigram
 TgCrypto
 pymongo
 dnspython
+psutil
