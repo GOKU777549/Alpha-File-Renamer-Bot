@@ -7,7 +7,7 @@ API_ID = int(os.environ.get("API_ID", "21218274"))
 API_HASH = os.environ.get("API_HASH", "3474a18b61897c672d315fb330edb213")
 
 # 🔹 Second Bot Config (modules ke liye)
-TOKEN2 = os.environ.get("TOKEN2", "1234567890:ABCDEF-your-second-token")
+TOKEN2 = os.environ.get("TOKEN2", "8288304784:AAEWOrG7MYRuKtfU4K2FxAmuKUcDWF_vrrA")
 
 if __name__ == "__main__":
     # ✅ Main Bot (sirf plugins load karega)
