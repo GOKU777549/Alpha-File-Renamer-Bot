@@ -1,4 +1,4 @@
-from pyrogram import Client
+from pyrogram import Client, idle
 import os
 
 # 🔹 Main Bot Config
@@ -30,10 +30,14 @@ if __name__ == "__main__":
         plugins=modules
     )
 
-    # Dono bots ko parallel run karne ke liye
+    # 🔹 Start both bots
     app1.start()
     app2.start()
     print("✅ Both bots started successfully!")
-    app1.idle()
-    app2.stop()
+
+    # 🔹 Keep running until stopped
+    idle()
+
+    # 🔹 Stop both bots on exit
     app1.stop()
+    app2.stop()
