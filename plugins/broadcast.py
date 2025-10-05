@@ -3,7 +3,7 @@ from pyrogram import filters
 from pyrogram.errors import FloodWait
 from pyrogram.types import Message
 
-from ChatBot import client
+from bot import Client
 from config import ADMIN_ID
 from helper.database import getid
 
