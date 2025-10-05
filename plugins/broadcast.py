@@ -1,41 +1,58 @@
-import os
 import asyncio
-from pyrogram import Client, filters
+from pyrogram import filters
 from pyrogram.errors import FloodWait
+from pyrogram.types import Message
+
+from ChatBot import client
+from config import ADMIN_ID
 from helper.database import getid
 
-ADMIN = int(os.environ.get("ADMIN", 7576729648))
 
-@Client.on_message(filters.private & filters.user(ADMIN) & filters.command("broadcast"))
-async def broadcast(bot, message):
-    if not message.reply_to_message:
-        return await message.reply_text("❌ Please reply to a message to broadcast it.")
-    
-    ms = await message.reply_text("Getting all IDs from database...")
-    ids = getid()
-    tot = len(ids)
-    success = 0
-    failed = 0
+@Client.on_message(filters.command("broadcast") & filters.user(ADMIN_ID))
+async def broadcast_(_, message: Message):
+    """Broadcast a message to all users and groups, with automatic pinning in groups."""
 
-    await ms.edit(f"Starting Broadcast...\nSending message to {tot} users")
+    reply = message.reply_to_message
+    text = message.text.split(None, 1)[1] if len(message.command) > 1 else None
 
-    for user_id in ids:
+    if not reply and not text:
+        return await message.reply_text("❖ Reply to a message or provide text to broadcast.")
+
+    progress_msg = await message.reply_text("❖ Broadcasting message Please wait...")
+
+    sent_groups, sent_users, failed, pinned = 0, 0, 0, 0
+
+    # Fetch all chat IDs from MongoDB
+    recipients = getid()
+
+    for chat_id in recipients:
         try:
-            await asyncio.sleep(1)  # non-blocking sleep
-            await message.reply_to_message.copy(user_id)
-            success += 1
-        except FloodWait as e:
-            await asyncio.sleep(e.x)
-            success += 1
-        except Exception:
-            failed += 1
-            continue
-        
-        # Update progress
-        try:
-            await ms.edit(
-                f"Message sent to {success} chat(s). "
-                f"{failed} chat(s) failed.\nTotal: {tot}"
-            )
+            if reply:
+                msg = await reply.copy(chat_id)
+            else:
+                msg = await client.send_message(chat_id, text=text)
+
+            if chat_id < 0:  # Group chat
+                try:
+                    await msg.pin(disable_notification=True)
+                    pinned += 1
+                except:
+                    pass
+                sent_groups += 1
+            else:
+                sent_users += 1
+
+            await asyncio.sleep(0.2)  # Prevent rate limits
+
+        except FloodWait as fw:
+            await asyncio.sleep(fw.value + 1)
         except:
-            pass
+            failed += 1
+
+    await progress_msg.edit_text(
+        f"✅ **Broadcast Completed!**\n\n"
+        f"👥 **Groups Sent:** {sent_groups}\n"
+        f"🧑‍💻 **Users Sent:** {sent_users}\n"
+        f"📌 **Pinned in:** {pinned}\n"
+        f"❌ **Failed:** {failed}"
+    )
